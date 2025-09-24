@@ -3,6 +3,9 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import pandas as pd
 
+AUCKLAND_GEOMETRY = ee.Geometry.Rectangle([174.5, -37.0, 175.3, -36.6])
+
+
 # Initialize Earth Engine (you need to authenticate first)
 ee.Authenticate()
 user = "Peter"
@@ -18,6 +21,7 @@ else:
 
 
 def get_most_recent_sentinel2_auckland_ee(
+    geometry: ee.geometry = AUCKLAND_GEOMETRY,
     days_back: int = 30,
     cloud_cover_max: float = 20.0,
     collection: str = "COPERNICUS/S2_SR_HARMONIZED",
@@ -52,7 +56,7 @@ def get_most_recent_sentinel2_auckland_ee(
     # Get Sentinel-2 collection
     collection = (
         ee.ImageCollection(collection)
-        .filterBounds(AUCKLAND_GEOMETRY)
+        .filterBounds(geometry)
         .filterDate(start_date_str, end_date_str)
         .filter(ee.Filter.lt("CLOUDY_PIXEL_PERCENTAGE", cloud_cover_max))
         .sort("system:time_start", False)
@@ -117,6 +121,7 @@ def quick_get_auckland_sentinel2():
 
 
 def get_most_recent_sentinel1_auckland_ee(
+    geometry: ee.geometry = AUCKLAND_GEOMETRY,
     days_back: int = 30,
     orbit_direction: str = "BOTH",
     instrument_mode: str = "IW",
@@ -156,7 +161,7 @@ def get_most_recent_sentinel1_auckland_ee(
     # Get Sentinel-1 collection
     s1_collection = (
         ee.ImageCollection(collection)
-        .filterBounds(AUCKLAND_GEOMETRY)
+        .filterBounds(geometry)
         .filterDate(start_date_str, end_date_str)
         .filter(ee.Filter.eq("instrumentMode", instrument_mode))
         .sort("system:time_start", False)
@@ -188,11 +193,11 @@ def get_most_recent_sentinel1_auckland_ee(
     print(
         f"Date: {datetime.fromtimestamp(props['system:time_start']/1000).strftime('%Y-%m-%d %H:%M:%S')}"
     )
-    print(f"Satellite: {props.get('platform_number', 'N/A')}")
-    print(f"Orbit Direction: {props.get('orbitProperties_pass', 'N/A')}")
-    print(f"Instrument Mode: {props.get('instrumentMode', 'N/A')}")
-    print(f"Polarization: {props.get('transmitterReceiverPolarisation', 'N/A')}")
-    print(f"Resolution: {props.get('resolution_meters', 'N/A')}m")
+    # print(f"Satellite: {props.get('platform_number', 'N/A')}")
+    # print(f"Orbit Direction: {props.get('orbitProperties_pass', 'N/A')}")
+    # print(f"Instrument Mode: {props.get('instrumentMode', 'N/A')}")
+    # print(f"Polarization: {props.get('transmitterReceiverPolarisation', 'N/A')}")
+    # print(f"Resolution: {props.get('resolution_meters', 'N/A')}m")
 
     # Print available bands
     bands = most_recent.bandNames().getInfo()
@@ -237,13 +242,13 @@ def check_sentinel1_polarization(image: ee.Image) -> Dict[str, any]:
         ),
     }
 
-    print("=== POLARIZATION CHECK ===")
-    print(f"Available bands: {band_names}")
-    print(f"VV polarization: {'✓' if has_vv else '✗'}")
-    print(f"VH polarization: {'✓' if has_vh else '✗'}")
-    print(f"HH polarization: {'✓' if has_hh else '✗'}")
-    print(f"HV polarization: {'✓' if has_hv else '✗'}")
-    print(f"Dual polarization: {'✓' if polarization_info['is_dual_pol'] else '✗'}")
-    print(f"Metadata polarization: {polarization_info['polarization_from_metadata']}")
+    # print("=== POLARIZATION CHECK ===")
+    # print(f"Available bands: {band_names}")
+    # print(f"VV polarization: {'✓' if has_vv else '✗'}")
+    # print(f"VH polarization: {'✓' if has_vh else '✗'}")
+    # print(f"HH polarization: {'✓' if has_hh else '✗'}")
+    # print(f"HV polarization: {'✓' if has_hv else '✗'}")
+    # print(f"Dual polarization: {'✓' if polarization_info['is_dual_pol'] else '✗'}")
+    # print(f"Metadata polarization: {polarization_info['polarization_from_metadata']}")
 
     return polarization_info
