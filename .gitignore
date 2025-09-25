@@ -1,2 +1,5 @@
 /Training Data/
 /Trained Model/
+/.vscode
+/__pycache__
+/gui/__pycache__
