@@ -1,5 +1,4 @@
-import dash
-from dash import dcc, html, Input, Output, State, callback
+from dash import dcc, html
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
@@ -191,7 +190,7 @@ def create_auckland_map():
             center=go.layout.mapbox.Center(lat=AUCKLAND_LAT, lon=AUCKLAND_LON),
             pitch=0,
             zoom=11,
-            style="open-street-map",  # Free map style
+            style="open-street-map",
         ),
         height=600,
         margin={"r": 0, "t": 0, "l": 0, "b": 0},
@@ -199,32 +198,3 @@ def create_auckland_map():
     )
 
     return fig
-
-
-def handle_map_callbacks(app):
-    """Register all map-related callbacks"""
-
-    # Callback to update welcome message
-    @app.callback(
-        Output("welcome-message", "children"),
-        [Input("current-user", "data")],
-        prevent_initial_call=False,
-    )
-    def update_welcome_message(username):
-        if username:
-            return f"Welcome, {username}!"
-        return ""
-
-    # Callback for logout functionality
-    @app.callback(
-        [
-            Output("login-status", "data", allow_duplicate=True),
-            Output("current-user", "data", allow_duplicate=True),
-        ],
-        [Input("logout-button", "n_clicks")],
-        prevent_initial_call=True,
-    )
-    def handle_logout(n_clicks):
-        if n_clicks > 0:
-            return False, None
-        return dash.no_update, dash.no_update
