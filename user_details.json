@@ -1,0 +1,10 @@
+{
+    "peter": {
+        "password": "",
+        "ee_project": "geog761-peag224"
+    },
+    "admin": {
+        "password": "123",
+        "ee_project": "project"
+    }
+}
