@@ -7,3 +7,5 @@ Note these folders will be stored within the repo but added to the git ignore fi
 https://uoa-my.sharepoint.com/:f:/g/personal/smcf586_uoa_auckland_ac_nz/EvahsMK5Z3ZJkjkqDs7rU50B64_yin2jt-xUisgEJUL15Q?e=1BqhrT
 
 Run 'pip install -r requirements.txt' before running code
+
+GUI: To open web app, run "gui/run.py" and open http://127.0.0.1:8050/ on your browser.

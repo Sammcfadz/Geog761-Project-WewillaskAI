@@ -1,6 +1,7 @@
 from dash import dcc, html
 import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
+import json
 
 # Auckland coordinates
 AUCKLAND_LAT = -36.8485
@@ -21,7 +22,7 @@ def create_map_layout():
                                     dbc.Col(
                                         [
                                             html.H2(
-                                                "Auckland Interactive Map",
+                                                "Auckland Landslide Map",
                                                 className="mb-0",
                                             )
                                         ],
@@ -144,43 +145,25 @@ def create_map_layout():
 def create_auckland_map():
     """Create an interactive map centered on Auckland"""
 
-    # Auckland points of interest
-    poi_data = {
-        "names": [
-            "Auckland CBD",
-            "Sky Tower",
-            "Auckland Harbour Bridge",
-            "Mission Bay",
-            "Mount Eden",
-        ],
-        "lat": [-36.8485, -36.8485, -36.8063, -36.8553, -36.8785],
-        "lon": [174.7633, 174.7633, 174.7444, 174.7972, 174.7633],
-        "descriptions": [
-            "Auckland Central Business District",
-            "Iconic 328m observation tower",
-            "Famous harbour bridge connecting North Shore",
-            "Popular beach suburb",
-            "Volcanic cone with city views",
-        ],
-    }
-
     fig = go.Figure()
 
-    # Add markers for points of interest
+    # Add polygons of landslides
+
+    with open("regions.geojson", "r") as f:
+        geojson = json.load(f)
+
     fig.add_trace(
-        go.Scattermapbox(
-            lat=poi_data["lat"],
-            lon=poi_data["lon"],
-            mode="markers",
-            marker=go.scattermapbox.Marker(
-                size=12, color=["red", "blue", "green", "orange", "purple"]
-            ),
-            text=[
-                f"<b>{name}</b><br>{desc}"
-                for name, desc in zip(poi_data["names"], poi_data["descriptions"])
-            ],
+        go.Choroplethmapbox(
+            geojson=geojson,  # your GeoJSON polygon data
+            locations=["region1", "region2"],  # must match feature "id" in geojson
+            z=[10, 30],  # values to shade polygons
+            featureidkey="id",  # match on GeoJSON "id"
+            colorscale="Viridis",  # colormap
+            marker_opacity=0.6,
+            marker_line_width=1,
+            text=["Region 1: Value 10", "Region 2: Value 30"],  # hover labels
             hoverinfo="text",
-            name="Points of Interest",
+            name="Shaded Regions",
         )
     )
 
@@ -189,7 +172,7 @@ def create_auckland_map():
             bearing=0,
             center=go.layout.mapbox.Center(lat=AUCKLAND_LAT, lon=AUCKLAND_LON),
             pitch=0,
-            zoom=11,
+            zoom=9,
             style="open-street-map",
         ),
         height=600,
