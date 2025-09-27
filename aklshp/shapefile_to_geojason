@@ -1,0 +1,7 @@
+import geopandas as gpd
+
+# Load shapefile
+gdf = gpd.read_file("aklshp/auckland.shp")
+
+# Save to GeoJSON
+gdf.to_file("aklshp/auckland_shape.geojson", driver="GeoJSON")
