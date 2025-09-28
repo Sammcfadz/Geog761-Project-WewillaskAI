@@ -6,7 +6,7 @@ plotly>=5.15.0
 # Google Earth Engine and geospatial
 earthengine-api>=0.1.350
 geemap>=0.24.0
-
+geopandas>= 1.1.0
 # Data processing
 pandas>=1.5.0
 
