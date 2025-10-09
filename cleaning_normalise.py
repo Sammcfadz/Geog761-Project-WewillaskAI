@@ -278,7 +278,7 @@ class DataCleaner:
     
     def validate_data(self, 
                       img: np.ndarray, 
-                      mask: np.ndarray) -> Dict[str, Any]:
+                      mask: Optional[np.ndarray] = None) -> Dict[str, Any]:
         """Validate input data and return warnings/errors"""
         
         issues = {
@@ -297,25 +297,26 @@ class DataCleaner:
         if np.any(np.isinf(img)):
             issues['warnings'].append("Image contains Inf values")
         
-        # Check mask properties
-        unique_mask = np.unique(mask)
-        if len(unique_mask) > 10:
-            issues['warnings'].append(
-                f"Mask has {len(unique_mask)} unique values, expected binary"
-            )
-        
-        # Check spatial dimensions match
-        img_spatial = img.shape[:2] if img.ndim >= 2 else img.shape
-        mask_spatial = mask.shape[:2] if mask.ndim >= 2 else mask.shape
-        
-        if img_spatial != mask_spatial:
-            issues['info'].append(
-                f"Spatial dimension mismatch: img{img_spatial} vs mask{mask_spatial}"
-            )
-        
-        # Check for empty mask
-        if np.sum(mask > 0) == 0:
-            issues['warnings'].append("Mask is empty (no positive pixels)")
+        # Mask-related checks only if mask is provided
+        if mask is not None:
+            unique_mask = np.unique(mask)
+            if len(unique_mask) > 10:
+                issues['warnings'].append(
+                    f"Mask has {len(unique_mask)} unique values, expected binary"
+                )
+            
+            # Check spatial dimensions match
+            img_spatial = img.shape[:2] if img.ndim >= 2 else img.shape
+            mask_spatial = mask.shape[:2] if mask.ndim >= 2 else mask.shape
+            
+            if img_spatial != mask_spatial:
+                issues['info'].append(
+                    f"Spatial dimension mismatch: img{img_spatial} vs mask{mask_spatial}"
+                )
+            
+            # Check for empty mask
+            if np.sum(mask > 0) == 0:
+                issues['warnings'].append("Mask is empty (no positive pixels)")
         
         # Check for suspicious value ranges
         if img.dtype.kind in ['u', 'i']:  # Unsigned or signed int
@@ -426,6 +427,66 @@ def process_pair_improved(img_path: str,
     })
 
 
+# ====== NEW: processing for images WITHOUT masks ======
+def process_image_only(img_path: str,
+                       out_dir: str,
+                       cleaner: DataCleaner,
+                       summary_rows: list) -> None:
+    """Process a single image (no mask)"""
+    img = read_first_dataset(img_path)
+
+    # Validate input (no mask given)
+    validation = cleaner.validate_data(img, mask=None)
+    if validation['errors']:
+        raise ValueError(f"Validation errors: {validation['errors']}")
+    if validation['warnings']:
+        print(f"  Warnings: {validation['warnings']}")
+
+    # Detect channel axis
+    channel_axis = cleaner.detect_channel_axis(img) if img.ndim == 3 else None
+
+    # Normalize image
+    img_norm, norm_stats = cleaner.robust_normalize(
+        img, axis=channel_axis, method=cleaner.outlier_method
+    )
+
+    # Output paths
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_img_path = out_dir / (Path(img_path).stem + "_clean.h5")
+
+    # Save with metadata
+    with h5py.File(out_img_path, 'w') as f:
+        dset = f.create_dataset('image', data=img_norm, compression='gzip')
+        dset.attrs['normalization_method'] = cleaner.outlier_method
+        dset.attrs['channel_axis'] = str(channel_axis)
+        for k, v in norm_stats.items():
+            try:
+                dset.attrs[f'norm_{k}'] = v
+            except:
+                dset.attrs[f'norm_{k}'] = str(v)
+        if validation['warnings']:
+            dset.attrs['validation_warnings'] = str(validation['warnings'])
+
+    # Summary row (mask fields are None)
+    summary_rows.append({
+        'image_file': Path(img_path).name,
+        'mask_file': None,
+        'image_shape_original': str(img.shape),
+        'mask_shape_original': None,
+        'image_shape_clean': str(img_norm.shape),
+        'mask_shape_clean': None,
+        'channel_axis': channel_axis,
+        'img_min_after': float(np.min(img_norm)),
+        'img_max_after': float(np.max(img_norm)),
+        'mask_coverage': None,
+        'validation_warnings': len(validation['warnings']),
+        'out_image': str(out_img_path),
+        'out_mask': None,
+    })
+# ======================================================
+
+
 def main():
     parser = argparse.ArgumentParser(description="Improved data cleaning pipeline")
     parser.add_argument("--split", default="TrainData", 
@@ -439,6 +500,10 @@ def main():
                        help="Minimum object size as ratio of image size")
     parser.add_argument("--max_pairs", type=int, default=None,
                        help="Maximum number of pairs to process")
+    # NEW: flag to handle datasets without masks
+    parser.add_argument("--has_mask", type=lambda s: s.lower() not in ["false","0","no","n"],
+                        default=True,
+                        help="Set to False if images do not have masks (inference data)")
     args = parser.parse_args()
     
     # Setup paths
@@ -450,11 +515,62 @@ def main():
     
     # Find files
     img_files = sorted(glob.glob(str(img_dir / "*.h5")))
-    mask_files = sorted(glob.glob(str(mask_dir / "*.h5")))
+    mask_files = sorted(glob.glob(str(mask_dir / "*.h5"))) if args.has_mask else []
     
-    if not img_files or not mask_files:
+    if not img_files:
         print(f"[ERROR] No H5 files found in:")
         print(f"  {img_dir}")
+        if args.has_mask:
+            print(f"  {mask_dir}")
+        return
+
+    # If NO MASKS: process images only and exit
+    if not args.has_mask:
+        print(f"\n[INFO] Found {len(img_files)} images (no masks).")
+        print(f"[INFO] Using {args.method} normalization method")
+        print(f"[INFO] Min object ratio: {args.min_object_ratio}")
+        cleaner = DataCleaner(
+            outlier_method=args.method,
+            min_object_ratio=args.min_object_ratio
+        )
+        summary_rows = []
+        failed_count = 0
+        images_to_process = img_files[:args.max_pairs] if args.max_pairs else img_files
+        for i, img_path in enumerate(images_to_process, 1):
+            print(f"\n[{i}/{len(images_to_process)}] Processing image: {Path(img_path).name}")
+            try:
+                process_image_only(img_path, out_dir, cleaner, summary_rows)
+                print("  ✓ Success")
+            except Exception as e:
+                print(f"  ✗ ERROR: {e}")
+                failed_count += 1
+                continue
+
+        if summary_rows:
+            df = pd.DataFrame(summary_rows)
+            csv_path = split_dir / "cleaning_summary_improved.csv"
+            df.to_csv(csv_path, index=False)
+            
+            print(f"\n{'='*60}")
+            print(f"PROCESSING COMPLETE")
+            print(f"{'='*60}")
+            print(f"✓ Processed: {len(summary_rows)} images")
+            if failed_count > 0:
+                print(f"✗ Failed: {failed_count} images")
+            print(f"✓ Output directory: {out_dir}")
+            print(f"✓ Summary CSV: {csv_path}")
+            
+            # Show sample of results
+            print(f"\nFirst 3 processed files:")
+            cols = ['image_file', 'image_shape_original', 'image_shape_clean']
+            print(df[cols].head(3).to_string())
+        else:
+            print(f"\n[ERROR] No files were successfully processed")
+        return
+    
+    # === Original paired processing path ===
+    if not mask_files:
+        print(f"[ERROR] No H5 mask files found in:")
         print(f"  {mask_dir}")
         return
     
