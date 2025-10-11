@@ -7,14 +7,12 @@
     "password": "123",
     "ee_project": "project"
   },
-
   "Juang": {
     "password": "12345",
     "ee_project": "infra-radius-466414-b7"
-
+  },
   "Sam": {
     "password": "123",
     "ee_project": "intricate-aria-467322-j0"
-
   }
 }
