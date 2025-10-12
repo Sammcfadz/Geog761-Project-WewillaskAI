@@ -4,5 +4,5 @@
 /__pycache__
 /gui/__pycache__
 venv/
-/aklshp/auckland_shape.geojson
+/aklshp/akl_shape.geojson
 
