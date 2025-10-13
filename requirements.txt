@@ -9,6 +9,7 @@ geemap>=0.24.0
 geopandas>= 1.1.0
 # Data processing
 pandas>=1.5.0
+# ADD SHAPELY
 
 # Standard library packages (usually included with Python)
 # json - built-in
