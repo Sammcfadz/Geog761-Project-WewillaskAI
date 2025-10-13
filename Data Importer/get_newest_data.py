@@ -3,12 +3,10 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 import pandas as pd
 
-AUCKLAND_GEOMETRY = ee.Geometry.Rectangle([174.5, -37.0, 175.3, -36.6])
-
 
 # Initialize Earth Engine (you need to authenticate first)
 ee.Authenticate()
-user = "Peter"
+user = "Sam"
 if user == "Peter":
     ee.Initialize(project="geog761-peag224")
 elif user == "Someone":
@@ -236,7 +234,7 @@ def log_image_info(image: ee.Image, dates_used: list = None) -> None:
 
 
 def get_most_recent_sentinel1_auckland_ee(
-    geometry: ee.Geometry = AUCKLAND_GEOMETRY,
+    geometry: ee.Geometry,
     days_back: int = 30,
     orbit_direction: str = "BOTH",
     instrument_mode: str = "IW",
