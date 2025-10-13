@@ -3,7 +3,7 @@ import numpy as np
 from shapely.geometry import box, Polygon
 import json
 
-def create_grid(geojson_path, output_path='grid_100m.geojson', grid_size=5000, crs='EPSG:32760'):
+def create_grid(geojson_path, output_path='grid_100m.geojson', grid_size=100, crs='EPSG:32760'):
     """
     Create a square grid that covers all points in a GeoJSON polygon.
     
@@ -93,6 +93,20 @@ def create_grid(geojson_path, output_path='grid_100m.geojson', grid_size=5000, c
         'geometry': grid_cells
     }, crs=crs)
     
+    # Filter out patches that don't intersect with the original geometry
+    print(f"\nFiltering patches that intersect with GeoJSON...")
+    print(f"  Before filtering: {len(grid_gdf)} patches")
+    
+    # Keep only patches that intersect with the original polygon
+    grid_gdf = grid_gdf[grid_gdf.intersects(gdf_utm.unary_union)]
+    
+    # Reset patch IDs to be sequential after filtering
+    grid_gdf['patch_id'] = range(len(grid_gdf))
+    grid_gdf = grid_gdf.reset_index(drop=True)
+    
+    print(f"  After filtering: {len(grid_gdf)} patches")
+    print(f"  Removed: {total_patches - len(grid_gdf)} patches")
+    
     # Save to file
     print(f"\nSaving grid to {output_path}")
     grid_gdf.to_file(output_path, driver='GeoJSON')
@@ -116,7 +130,7 @@ if __name__ == "__main__":
     # Replace with your GeoJSON path
     geojson_file = "aklshp/akl_mainland_only.geojson"
     
-    # Create the grid (default 100m x 100m)
+    # Create the grid (default 5000m x 5000m)
     grid = create_grid(
         geojson_path=geojson_file,
         output_path='aklshp/auckland_grid_5000m.geojson',
