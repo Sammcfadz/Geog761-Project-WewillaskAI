@@ -1,18 +1,41 @@
-# Dash and web framework dependencies
+# ==============================
+# Dash and Web Framework
+# ==============================
 dash>=2.14.0
 dash-bootstrap-components>=1.4.0
 plotly>=5.15.0
+dash-leaflet>=0.1.28
 
-# Google Earth Engine and geospatial
+# ==============================
+# Google Earth Engine & Geospatial
+# ==============================
 earthengine-api>=0.1.350
 geemap>=0.24.0
-geopandas>= 1.1.0
-# Data processing
-pandas>=1.5.0
-# ADD SHAPELY
+geopandas>=1.1.0
+shapely>=2.0.0
+folium>=0.15.0
+matplotlib>=3.7.0
 
-# Standard library packages (usually included with Python)
-# json - built-in
-# os - built-in  
-# datetime - built-in
-# typing - built-in (Python 3.5+)
+# ==============================
+# Data Processing & Scientific
+# ==============================
+pandas>=1.5.0
+numpy>=1.24.0
+scipy>=1.10.0
+h5py>=3.8.0
+
+# ==============================
+# Utility & System Tools
+# ==============================
+argparse>=1.4.0
+pathlib>=1.0.1
+glob2>=0.7
+
+# ==============================
+# Built-in (No Installation Required)
+# ==============================
+# json
+# os
+# datetime
+# typing
+# sys
