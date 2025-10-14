@@ -149,13 +149,18 @@ def create_auckland_map():
 
     # Add polygons of landslides
 
-    with open("regions.geojson", "r") as f:
+    # with open("regions.geojson", "r") as f:
+    #     geojson = json.load(f)
+    with open("aklshp/landslide_annotations.geojson", "r") as f:
         geojson = json.load(f)
+
+    # create a list of all feature IDs
+    ids = [feature["id"] for feature in geojson["features"]]
 
     fig.add_trace(
         go.Choroplethmapbox(
             geojson=geojson,  # your GeoJSON polygon data
-            locations=["region1", "region2"],  # must match feature "id" in geojson
+            locations=ids,  # must match feature "id" in geojson
             z=[10, 30],  # values to shade polygons
             featureidkey="id",  # match on GeoJSON "id"
             colorscale="Viridis",  # colormap
