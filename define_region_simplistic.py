@@ -1,3 +1,8 @@
+## trying to get things to work with GEE
+import ee
+ee.Authenticate
+ee.Initialize(project='lab-1-761')
+
 def create_simplistic_region():
     """
     Create a simplistic rectangular bounding region around Muriwai (Auckland) in Google Earth Engine.
