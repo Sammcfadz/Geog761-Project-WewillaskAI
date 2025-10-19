@@ -106,9 +106,9 @@ def handle_action(n_clicks, username, password, project, mode):
 
         # Load existing users
         users = {}
-        if os.path.exists("user_details.json"):
+        if os.path.exists("gui/user_details.json"):
             try:
-                with open("user_details.json", "r") as file:
+                with open("gui/user_details.json", "r") as file:
                     users = json.load(file)
             except (json.JSONDecodeError, FileNotFoundError):
                 users = {}
@@ -162,7 +162,7 @@ def handle_action(n_clicks, username, password, project, mode):
 
             # Save to file
             try:
-                with open("user_details.json", "w") as file:
+                with open("gui/user_details.json", "w") as file:
                     json.dump(users, file, indent=2)
 
                 success_msg = {

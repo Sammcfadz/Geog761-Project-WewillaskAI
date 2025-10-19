@@ -149,10 +149,10 @@ def create_auckland_map():
 
     # Add polygons of landslides
 
-    # with open("regions.geojson", "r") as f:
-    #     geojson = json.load(f)
-    with open("aklshp/landslide_annotations.geojson", "r") as f:
+    with open("gui/regions.geojson", "r") as f:
         geojson = json.load(f)
+    # with open("aklshp/landslide_annotations.geojson", "r") as f:
+    #     geojson = json.load(f)
 
     # create a list of all feature IDs
     ids = [feature["id"] for feature in geojson["features"]]

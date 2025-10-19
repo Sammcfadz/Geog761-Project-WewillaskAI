@@ -1,3 +1,8 @@
+# TO DO:
+# Get app to update itself when each button is selected in draw mode
+# Get clear to work in annotation mode
+# Convert annotation to patch
+
 import dash
 from dash import dcc, html, Input, Output, State, callback_context
 import dash_leaflet as dl
