@@ -7,7 +7,7 @@ from pathlib import Path
 import json
 
 # Import your functions
-from data_importer.get_specific_data import (
+from get_newest_data import (
     get_most_recent_sentinel2_auckland_ee,
     get_most_recent_sentinel1_auckland_ee
 )
@@ -210,10 +210,10 @@ def extract_patch_data(image, geometry, scale=10):
 # Main execution
 if __name__ == "__main__":
     
-    grid_path = 'aklshp/auckland_grid_5000m.geojson'
+    grid_path = 'aklshp/auckland_grid_1280m.geojson'
     
     extract_sentinel_patches(
         grid_geojson_path=grid_path,
-        output_dir='auckland_patches',
+        output_dir='auckland_patches/1280m_grid',
         scale=10  # 10m resolution
     )
