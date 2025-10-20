@@ -150,7 +150,7 @@ app.layout = html.Div(
                                 dcc.RadioItems(
                                     id="drawing-mode",
                                     options=[
-                                        {"label": " View Only", "value": "view"},
+                                        # {"label": " View Only", "value": "view"},
                                         {
                                             "label": " Draw Region of Interest (Rectangle)",
                                             "value": "roi",
@@ -160,7 +160,7 @@ app.layout = html.Div(
                                             "value": "landslide",
                                         },
                                     ],
-                                    value="view",
+                                    value="roi",
                                     inline=True,
                                     style={"marginLeft": "10px"},
                                     labelStyle={"marginRight": "20px"},
@@ -353,6 +353,7 @@ app.layout = html.Div(
         dcc.Store(id="current-tile-url"),
         dcc.Store(id="roi-features", data=None),
         dcc.Store(id="landslide-features", data=[]),
+        dcc.Store(id="clear-trigger", data=0),  # Track clear events
         dcc.Download(id="download-geojson"),
     ]
 )
@@ -543,6 +544,7 @@ def update_draw_mode(mode):
         Output("roi-layer", "children"),
         Output("landslide-layer", "children"),
         Output("annotation-status", "children"),
+        Output("edit-control", "geojson"),
     ],
     [Input("edit-control", "geojson"), Input("clear-button", "n_clicks")],
     [
@@ -560,13 +562,21 @@ def handle_drawing(geojson_data, clear_clicks, mode, roi_data, landslide_data):
     if landslide_data is None:
         landslide_data = []
 
-    # Clear all
+    # Clear all - IMPORTANT: Also clear the edit-control's geojson
     if triggered_id == "clear-button":
         status = html.Div(
             "🗑️ All annotations cleared!",
             style={"color": "orange", "fontWeight": "bold"},
         )
-        return None, [], None, None, status
+        # Return None for everything INCLUDING edit-control geojson
+        return (
+            None,
+            [],
+            None,
+            None,
+            status,
+            {"type": "FeatureCollection", "features": []},
+        )
 
     # Handle new drawings
     if geojson_data and triggered_id == "edit-control":
@@ -594,6 +604,7 @@ def handle_drawing(geojson_data, clear_clicks, mode, roi_data, landslide_data):
                 roi_layer,
                 create_landslide_layer(landslide_data),
                 status,
+                geojson_data,
             )
 
         elif mode == "landslide" and features:
@@ -614,15 +625,17 @@ def handle_drawing(geojson_data, clear_clicks, mode, roi_data, landslide_data):
                 create_roi_layer(roi_data),
                 landslide_layer,
                 status,
+                geojson_data,
             )
 
-    # Return current state
+    # Return current state with existing geojson
     return (
         roi_data,
         landslide_data,
         create_roi_layer(roi_data),
         create_landslide_layer(landslide_data),
         "",
+        geojson_data,
     )
 
 
@@ -732,5 +745,4 @@ def save_annotations(
 
 
 if __name__ == "__main__":
-    print("Starting Sentinel-2 Landslide Annotation Tool...")
     app.run(debug=True, port=8050)

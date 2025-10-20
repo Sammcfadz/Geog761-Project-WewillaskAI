@@ -7,7 +7,7 @@ from pathlib import Path
 import json
 
 # Import your functions
-from get_newest_data import (
+from data_importer.get_specific_data import (
     get_most_recent_sentinel2_auckland_ee,
     get_most_recent_sentinel1_auckland_ee
 )
