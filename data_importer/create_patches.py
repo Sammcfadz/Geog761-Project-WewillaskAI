@@ -3,7 +3,7 @@ import numpy as np
 from shapely.geometry import box, Polygon
 import json
 
-def create_grid(geojson_path, output_path='grid_100m.geojson', grid_size=100, crs='EPSG:32760'):
+def create_grid(geojson_path, output_path='1280m_grid.geojson', grid_size=1280, crs='EPSG:32760'):
     """
     Create a square grid that covers all points in a GeoJSON polygon.
     
