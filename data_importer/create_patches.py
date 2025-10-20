@@ -3,7 +3,7 @@ import numpy as np
 from shapely.geometry import box, Polygon
 import json
 
-def create_grid(geojson_path, output_path, grid_size=1280, crs='EPSG:32760'):
+def create_grid(geojson_path, output_path, grid_size, crs='EPSG:32760'):
     """
     Create a square grid that covers all points in a GeoJSON polygon.
     
@@ -133,7 +133,7 @@ if __name__ == "__main__":
     # Create the grid (default 5000m x 5000m)
     grid = create_grid(
         geojson_path=geojson_file,
-        output_path='aklshp/1280m_grid/model1.geojson',
+        output_path='aklshp/auckland_grid_1280m.geojson',
         grid_size=1280,  # Can change to any size in meters
         crs='EPSG:32760'  # UTM Zone 60S for Auckland
     )
