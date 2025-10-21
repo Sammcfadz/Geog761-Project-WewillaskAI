@@ -1,0 +1,31 @@
+{
+  "timestamp": "2025-10-20T23:50:00.013928",
+  "model_type": "Fixed Production DNN",
+  "input_dimension": 15,
+  "training_samples": 5120,
+  "performance_metrics": {
+    "accuracy": 0.69,
+    "precision": 0.5792079207920792,
+    "recall": 0.41785714285714287,
+    "f1_score": 0.4854771784232365,
+    "roc_auc": 0.7134495192307693
+  },
+  "bands_used": [
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "B6",
+    "B7",
+    "B8",
+    "B8A",
+    "B9",
+    "B11",
+    "B12",
+    "VV",
+    "VH",
+    "elevation"
+  ],
+  "version": "1.0.0"
+}

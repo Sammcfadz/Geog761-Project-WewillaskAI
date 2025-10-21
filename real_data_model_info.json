@@ -1,0 +1,20 @@
+{
+  "timestamp": "2025-10-21T00:54:13.073071",
+  "model_type": "RandomForest",
+  "features": [
+    "elevation",
+    "ndvi",
+    "ndwi",
+    "nbr",
+    "vv_vh_ratio",
+    "total_backscatter",
+    "green_red_ratio",
+    "nir_swir_ratio",
+    "brightness"
+  ],
+  "training_data": "Earth Engine TFRecord",
+  "performance": {
+    "accuracy": null,
+    "recall": null
+  }
+}

@@ -267,16 +267,23 @@ def quick_get_auckland_sentinel2():
 
 
 def get_most_recent_sentinel1_auckland_ee(
-    geometry: ee.geometry = AUCKLAND_GEOMETRY,
+    geometry: ee.Geometry = AUCKLAND_GEOMETRY,
     days_back: int = 30,
     orbit_direction: str = "BOTH",
     instrument_mode: str = "IW",
     collection: str = "COPERNICUS/S1_GRD",
-) -> ee.Image:
+    require_full_coverage: bool = True,
+    coverage_threshold: float = 0.95,
+    max_images_to_composite: int = 5,
+) -> tuple[ee.Image, dict]:
     """
-    Get the most recent Sentinel-1 image over Auckland using Google Earth Engine
+    Get the most recent Sentinel-1 image/composite over Auckland using Google Earth Engine.
+
+    This version builds a composite by progressively adding images from older dates
+    until full coverage is achieved.
 
     Args:
+        geometry: Region of interest (default: Auckland)
         days_back: Number of days to search back from today
         orbit_direction: Orbit direction ('ASCENDING', 'DESCENDING', or 'BOTH')
         instrument_mode: Instrument mode ('IW', 'EW', 'SM', or 'WV')
@@ -287,9 +294,12 @@ def get_most_recent_sentinel1_auckland_ee(
         collection: Sentinel-1 collection to use
                    - 'COPERNICUS/S1_GRD' (Ground Range Detected, recommended)
                    - 'COPERNICUS/S1_GRD_FLOAT' (Ground Range Detected, float)
+        require_full_coverage: If True, keep adding images until coverage threshold is met
+        coverage_threshold: Minimum fraction of geometry that must be covered (0.0-1.0)
+        max_images_to_composite: Maximum number of images to combine
 
     Returns:
-        Earth Engine Image object of most recent scene
+        Tuple of (ee.Image, metadata_dict) where metadata contains info about the composite
     """
 
     # Calculate date range
@@ -320,55 +330,162 @@ def get_most_recent_sentinel1_auckland_ee(
         )
 
     # Get collection size
-    collection_size = s1_collection.size()
-    print(f"Found {collection_size.getInfo()} images matching criteria")
+    collection_size = s1_collection.size().getInfo()
+    print(f"Found {collection_size} images matching criteria")
 
-    if collection_size.getInfo() == 0:
+    if collection_size == 0:
         print("No images found. Try increasing days_back or changing orbit_direction")
-        return None
+        return None, None
 
-    # Get the most recent image
-    most_recent = s1_collection.first()
+    # Get list of images (as a list for iteration)
+    image_list = s1_collection.toList(collection_size)
 
-    # Get image properties
-    image_info = most_recent.getInfo()
-    props = image_info["properties"]
+    # Get the first (most recent) image for metadata
+    most_recent_image = ee.Image(image_list.get(0))
+    most_recent_info = most_recent_image.getInfo()
 
-    print("\n=== MOST RECENT IMAGE ===")
-    print(f"Image ID: {image_info['id']}")
-    print(
-        f"Date: {datetime.fromtimestamp(props['system:time_start']/1000).strftime('%Y-%m-%d %H:%M:%S')}"
-    )
-    # print(f"Satellite: {props.get('platform_number', 'N/A')}")
-    # print(f"Orbit Direction: {props.get('orbitProperties_pass', 'N/A')}")
-    # print(f"Instrument Mode: {props.get('instrumentMode', 'N/A')}")
-    # print(f"Polarization: {props.get('transmitterReceiverPolarisation', 'N/A')}")
-    # print(f"Resolution: {props.get('resolution_meters', 'N/A')}m")
+    # Build composite progressively
+    composite = None
+    images_used = 0
+    dates_used = []
+    image_ids_used = []
 
-    # Print available bands
-    bands = most_recent.bandNames().getInfo()
-    print(f"Available bands: {bands}")
+    for i in range(min(collection_size, max_images_to_composite)):
+        # Get the i-th image
+        current_image = ee.Image(image_list.get(i))
 
-    return most_recent
+        # Get date for logging
+        img_info = current_image.getInfo()
+        img_date = datetime.fromtimestamp(
+            img_info["properties"]["system:time_start"] / 1000
+        ).strftime("%Y-%m-%d %H:%M:%S")
+        img_id = img_info["id"]
+
+        # Add to composite
+        if composite is None:
+            composite = current_image
+            print(f"\nImage {i+1}/{collection_size}: {img_date} - Starting composite")
+        else:
+            # Use mosaic to overlay: newer data on top, older fills gaps
+            composite = ee.ImageCollection([current_image, composite]).mosaic()
+            print(f"Image {i+1}/{collection_size}: {img_date} - Adding to composite")
+
+        images_used += 1
+        dates_used.append(img_date)
+        image_ids_used.append(img_id)
+
+        # Check coverage
+        coverage = check_coverage(composite, geometry)
+        print(f"  Cumulative coverage: {coverage*100:.1f}% (images: {images_used})")
+
+        if require_full_coverage and coverage >= coverage_threshold:
+            print(f"\n✓ Full coverage achieved!")
+            print(f"  Total images used: {images_used}")
+            print(f"  Most recent: {dates_used[0]}")
+            print(f"  Oldest: {dates_used[-1]}")
+            break
+
+    # Create metadata dictionary
+    metadata = {
+        "images_used": images_used,
+        "dates_used": dates_used,
+        "image_ids_used": image_ids_used,
+        "is_composite": images_used > 1,
+        "coverage": check_coverage(composite, geometry) if composite else 0.0,
+        "most_recent_properties": most_recent_info.get("properties", {}),
+        "band_names": composite.bandNames().getInfo() if composite else [],
+    }
+
+    # Log composite info
+    if composite is not None:
+        log_sentinel1_info(metadata)
+        return composite, metadata
+    else:
+        print("\n⚠ Could not create composite")
+        return None, None
 
 
-def check_sentinel1_polarization(image: ee.Image) -> Dict[str, any]:
+def log_sentinel1_info(metadata: dict) -> None:
+    """Log metadata information about a Sentinel-1 image or composite."""
+    props = metadata["most_recent_properties"]
+
+    print("\n=== COMPOSITE INFO ===")
+    if metadata["is_composite"]:
+        print(f"Multi-image composite using {metadata['images_used']} images")
+        print(f"Most recent: {metadata['dates_used'][0]}")
+        print(f"Oldest: {metadata['dates_used'][-1]}")
+    else:
+        print(f"Single image")
+
+    print(f"\nMost recent Image ID: {metadata['image_ids_used'][0]}")
+    print(f"Most recent date: {metadata['dates_used'][0]}")
+    print(f"Satellite: {props.get('platform_number', 'N/A')}")
+    print(f"Orbit Direction: {props.get('orbitProperties_pass', 'N/A')}")
+    print(f"Instrument Mode: {props.get('instrumentMode', 'N/A')}")
+    print(f"Polarization: {props.get('transmitterReceiverPolarisation', 'N/A')}")
+    print(f"Resolution: {props.get('resolution_meters', 'N/A')}m")
+    print(f"Available bands: {metadata['band_names']}")
+    print(f"Final coverage: {metadata['coverage']*100:.1f}%")
+
+
+def check_coverage(image: ee.Image, geometry: ee.Geometry) -> float:
     """
-    Check the polarization(s) available in a Sentinel-1 image
+    Calculate what fraction of the geometry is covered by valid (non-masked) pixels.
+
+    Returns:
+        float between 0.0 and 1.0 representing coverage fraction
+    """
+    # Create a binary mask: 1 where image has valid data, 0 where masked
+    valid_mask = image.select(0).mask()
+
+    # Calculate area of valid pixels within geometry
+    valid_area = (
+        valid_mask.multiply(ee.Image.pixelArea())
+        .reduceRegion(
+            reducer=ee.Reducer.sum(),
+            geometry=geometry,
+            scale=10,  # Use 10m for calculation (S1 is ~10m resolution)
+            maxPixels=1e10,
+            bestEffort=True,
+        )
+        .values()
+        .get(0)
+    )
+
+    # Calculate total geometry area
+    total_area = geometry.area(maxError=10)
+
+    # Return coverage fraction
+    coverage = ee.Number(valid_area).divide(total_area).getInfo()
+    return coverage
+
+
+def check_sentinel1_polarization(image: ee.Image = None, metadata: dict = None) -> dict:
+    """
+    Check the polarization(s) available in a Sentinel-1 image or composite.
+
+    Can accept either the image directly OR the metadata dict returned by
+    get_most_recent_sentinel1_auckland_ee()
 
     Args:
-        image: Sentinel-1 Earth Engine Image
+        image: Sentinel-1 Earth Engine Image (optional if metadata provided)
+        metadata: Metadata dictionary from get_most_recent_sentinel1_auckland_ee() (optional if image provided)
 
     Returns:
         Dictionary with polarization information
     """
 
-    # Get band names
-    band_names = image.bandNames().getInfo()
-
-    # Get image properties
-    image_info = image.getInfo()
-    props = image_info["properties"]
+    if metadata is not None:
+        # Use metadata from composite
+        band_names = metadata["band_names"]
+        props = metadata["most_recent_properties"]
+    elif image is not None:
+        # Get from image directly
+        band_names = image.bandNames().getInfo()
+        image_info = image.getInfo()
+        props = image_info.get("properties", {})
+    else:
+        raise ValueError("Must provide either image or metadata")
 
     # Check which polarizations are available
     has_vv = "VV" in band_names
@@ -387,14 +504,5 @@ def check_sentinel1_polarization(image: ee.Image) -> Dict[str, any]:
             "transmitterReceiverPolarisation", "N/A"
         ),
     }
-
-    # print("=== POLARIZATION CHECK ===")
-    # print(f"Available bands: {band_names}")
-    # print(f"VV polarization: {'✓' if has_vv else '✗'}")
-    # print(f"VH polarization: {'✓' if has_vh else '✗'}")
-    # print(f"HH polarization: {'✓' if has_hh else '✗'}")
-    # print(f"HV polarization: {'✓' if has_hv else '✗'}")
-    # print(f"Dual polarization: {'✓' if polarization_info['is_dual_pol'] else '✗'}")
-    # print(f"Metadata polarization: {polarization_info['polarization_from_metadata']}")
 
     return polarization_info
