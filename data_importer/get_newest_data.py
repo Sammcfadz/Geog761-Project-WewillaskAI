@@ -31,11 +31,12 @@ from datetime import datetime, timedelta
 def get_most_recent_sentinel2_auckland_ee(
     geometry: ee.Geometry,
     days_back: int = 100,
-    cloud_cover_max: float = 30.0,
+    cloud_cover_max: float = 100.0,
     collection: str = "COPERNICUS/S2_SR_HARMONIZED",
     require_full_coverage: bool = True,
     coverage_threshold: float = 0.95,
     max_days_to_composite: int = 14,
+    end_date=None,
 ) -> ee.Image:
     """
     Get the most recent Sentinel-2 mosaic that fully covers the input region.
@@ -63,8 +64,15 @@ def get_most_recent_sentinel2_auckland_ee(
         ee.Image mosaic covering at least the entire geometry region, or None if not found.
     """
 
-    # Define time range
-    end_date = datetime.utcnow()
+    # Handle end_date parameter
+    if end_date is None:
+        end_date = datetime.utcnow()
+    elif isinstance(end_date, str):
+        # Parse string date "YYYY-MM-DD"
+        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+    # If it's already a datetime object, use it as-is
+
+    # Calculate start date
     start_date = end_date - timedelta(days=days_back)
     start_date_str = start_date.strftime("%Y-%m-%d")
     end_date_str = end_date.strftime("%Y-%m-%d")
