@@ -283,6 +283,7 @@ def get_most_recent_sentinel1_auckland_ee(
     require_full_coverage: bool = True,
     coverage_threshold: float = 0.95,
     max_images_to_composite: int = 5,
+    end_date=None,
 ) -> tuple[ee.Image, dict]:
     """
     Get the most recent Sentinel-1 image/composite over Auckland using Google Earth Engine.
@@ -310,11 +311,16 @@ def get_most_recent_sentinel1_auckland_ee(
         Tuple of (ee.Image, metadata_dict) where metadata contains info about the composite
     """
 
-    # Calculate date range
-    end_date = datetime.now()
-    start_date = end_date - timedelta(days=days_back)
+    # Handle end_date parameter
+    if end_date is None:
+        end_date = datetime.utcnow()
+    elif isinstance(end_date, str):
+        # Parse string date "YYYY-MM-DD"
+        end_date = datetime.strptime(end_date, "%Y-%m-%d")
+    # If it's already a datetime object, use it as-is
 
-    # Format dates for Earth Engine
+    # Calculate start date
+    start_date = end_date - timedelta(days=days_back)
     start_date_str = start_date.strftime("%Y-%m-%d")
     end_date_str = end_date.strftime("%Y-%m-%d")
 
