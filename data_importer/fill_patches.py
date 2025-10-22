@@ -6,11 +6,6 @@ import h5py
 from pathlib import Path
 import json
 
-# Import your functions
-from get_newest_data import (
-    get_most_recent_sentinel2_auckland_ee,
-    get_most_recent_sentinel1_auckland_ee
-)
 
 # Initialize Earth Engine
 user = "Sam"
@@ -18,6 +13,12 @@ if user == "Peter":
     ee.Initialize(project="geog761-peag224")
 elif user == "Sam":
     ee.Initialize(project="intricate-aria-467322-j0")
+
+# Import your functions"""
+from get_newest_data import (
+    get_most_recent_sentinel2_auckland_ee,
+    get_most_recent_sentinel1_auckland_ee
+)
 
 
 def extract_sentinel_patches(
@@ -69,7 +70,7 @@ def extract_sentinel_patches(
     print(f"  S2 bands: {s2_bands}")
     
     print("\nFetching Sentinel-1 image...")
-    s1_image, s1_metadata = get_most_recent_sentinel1_auckland_ee(
+    s1_image = get_most_recent_sentinel1_auckland_ee(
         grid_geometry,
         days_back=30
     )
@@ -210,10 +211,10 @@ def extract_patch_data(image, geometry, scale=10):
 # Main execution
 if __name__ == "__main__":
     
-    grid_path = 'aklshp/auckland_grid_1280m.geojson'
+    grid_path = 'aklshp/auckland_grid_5000m.geojson'
     
     extract_sentinel_patches(
         grid_geojson_path=grid_path,
-        output_dir='auckland_patches/1280m_grid',
+        output_dir='auckland_patches/5000m_grid',
         scale=10  # 10m resolution
     )

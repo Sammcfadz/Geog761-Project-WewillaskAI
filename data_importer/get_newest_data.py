@@ -8,7 +8,7 @@ AUCKLAND_GEOMETRY = ee.Geometry.Rectangle([174.5, -37.0, 175.3, -36.6])
 
 # Initialize Earth Engine (you need to authenticate first)
 ee.Authenticate()
-user = "Peter"
+user = "Sam"
 if user == "Peter":
     ee.Initialize(project="geog761-peag224")
 elif user == "Someone":
