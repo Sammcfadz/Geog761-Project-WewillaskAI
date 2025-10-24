@@ -410,9 +410,7 @@ def ee_images_to_hdf5(
     print(f"  S2 bands: {s2_band_names}")
 
     # Choose extraction method
-    extract_func = (
-        ee_image_to_numpy_export if use_export_method else ee_image_to_numpy_sample
-    )
+    extract_func = ee_image_to_numpy_thumb
 
     # Download images as numpy arrays
     print("\n" + "-" * 70)
