@@ -1,4 +1,6 @@
-/Training Data/
+/Training Data/TestData/
+/Training Data/TrainData/
+/Training Data/ValidData/
 /.vscode
 /__pycache__
 /gui/__pycache__
