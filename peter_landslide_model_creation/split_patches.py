@@ -270,8 +270,8 @@ if __name__ == "__main__":
     split_image_and_mask_pairs(
         image_dir="Training Data/nasa_patches_original",
         mask_dir="Training Data/nasa_masks_original",
-        output_image_dir="Training Data/nasa_patches_split",
-        output_mask_dir="Training Data/nasa_masks_split",
-        target_patch_size=512,  # 1.28km at 10m resolution
-        max_patch_size=500     # Don't split if smaller than 2km
+        output_image_dir="Training Data/nasa_patches_split_128",
+        output_mask_dir="Training Data/nasa_masks_split_128",
+        target_patch_size=128,  # 1.28km at 10m resolution
+        max_patch_size=100     # Don't split if smaller than 2km
     )

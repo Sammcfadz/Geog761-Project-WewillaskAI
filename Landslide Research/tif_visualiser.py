@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Path to your .tif file
-file_path = r"Training Data\nasa_patches_split\s1s2_combined_1_r2_c3.tif"
+file_path = r"Training Data\nasa_patches_split_128\patch_1_r0_c0.tif"
 
 # Open GeoTIFF
 with rasterio.open(file_path) as src:
