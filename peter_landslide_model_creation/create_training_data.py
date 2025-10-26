@@ -108,7 +108,7 @@ def get_s2_image(geometry, start_date, end_date, max_cloud_percent=100, s2_bands
         )
         cloud = True
         if s2.size().getInfo() == 0:
-            print("No images found. Tryinf Sentinel-2A ")
+            print("No images found. Trying Sentinel-2A ")
             s2 = (
                 ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
                 .filterBounds(geometry)\
@@ -152,28 +152,84 @@ def get_s1_image(geometry, start_date, end_date):
     mosaic = s1_sorted.mosaic().clip(geometry)
     return mosaic
 
+def constrain_bbox_size(bbox_geom, min_size=1000, max_size=5000):
+    """
+    Constrain bounding box to be between min_size and max_size meters.
+    
+    Parameters:
+    bbox_geom: shapely.geometry.Polygon
+        Bounding box in Web Mercator (EPSG:3857) with meters
+    min_size: float
+        Minimum size in meters (default 1000m = 1km)
+    max_size: float
+        Maximum size in meters (default 5000m = 5km)
+    
+    Returns:
+    shapely.geometry.Polygon
+        Adjusted bounding box
+    """
+    bounds = bbox_geom.bounds
+    minx, miny, maxx, maxy = bounds
+    
+    width = maxx - minx
+    height = maxy - miny
+    
+    # Get center point
+    center_x = (minx + maxx) / 2
+    center_y = (miny + maxy) / 2
+    
+    # Adjust width
+    if width < min_size:
+        new_width = min_size
+    elif width > max_size:
+        new_width = max_size
+    else:
+        new_width = width
+    
+    # Adjust height
+    if height < min_size:
+        new_height = min_size
+    elif height > max_size:
+        new_height = max_size
+    else:
+        new_height = height
+    
+    # Create new bbox centered on original
+    new_minx = center_x - new_width / 2
+    new_maxx = center_x + new_width / 2
+    new_miny = center_y - new_height / 2
+    new_maxy = center_y + new_height / 2
+    
+    return box(new_minx, new_miny, new_maxx, new_maxy)
+
 def pull_sentinel_data(bbox, start_date, end_date, max_cloud_percent=100):
     """
-    Placeholder function to pull Sentinel-2 data for a given bounding box and date range.
-    In a real implementation, this would interface with an API or data repository.
+    Pull Sentinel-1 and Sentinel-2 data for a given bounding box and date range.
+    Constrains bbox to be between 1km x 1km and 5km x 5km.
 
     Parameters:
     bbox: shapely.geometry.Polygon
-        Bounding box for the area of interest.
+        Bounding box for the area of interest (in EPSG:3857).
     start_date: datetime
         Start date for data retrieval.
     end_date: datetime
         End date for data retrieval.
 
     Returns:
-    None
+    tuple or None: (s1_image, s2_image, ee_geometry, shapely_geometry_4326)
     """
-    print(f"Pulling Sentinel-2 data for bbox {bbox.bounds} from {start_date} to {end_date}...")
+    
+    # Constrain bbox size (bbox is in EPSG:3857 - meters)
+    constrained_bbox = constrain_bbox_size(bbox, min_size=1000, max_size=5000)
+    
+    print(f"Pulling Sentinel-2 data for bbox {constrained_bbox.bounds} from {start_date} to {end_date}...")
+    
     if end_date < pd.to_datetime("2015-06-27"):
         print("No Sentinel-2 data available before June 27, 2015.")
         return None
+    
     # Convert to GeoSeries so you can reproject
-    gdf = gpd.GeoSeries([bbox], crs="EPSG:3857")
+    gdf = gpd.GeoSeries([constrained_bbox], crs="EPSG:3857")
 
     # Reproject to geographic CRS (WGS84)
     gdf_4326 = gdf.to_crs(epsg=4326)
@@ -186,45 +242,86 @@ def pull_sentinel_data(bbox, start_date, end_date, max_cloud_percent=100):
     s2 = get_s2_image(geometry, start_date, end_date, max_cloud_percent)
     s1 = get_s1_image(geometry, start_date, end_date)
     if s1 is not None and s2 is not None:
-        return s1, s2, geometry
+        # Return the Shapely geometry as well for mask creation
+        return s1, s2, geometry, gdf_4326.iloc[0]
     else:
         return None
 
-def create_mask(idx, gdf):
-    landslide = gdf.iloc[idx]
-    geometry = landslide['geometry']
-    event_date = landslide['event_date']
-    print(f"Creating mask for landslide on {event_date}...")
+def create_mask(idx, gdf, ee_geometry, shapely_geometry):
+    """
+    Create and export a GeoTIFF landslide mask where:
+    - 0 = non-landslide area
+    - 1 = landslide area
+    - Resolution = 10m
+    - Extent = ee_geometry (bounding region)
     
-    # Keep geometry in EPSG:4326 - no reprojection needed
-    gdf_geom = gpd.GeoSeries([geometry], crs="EPSG:4326")
+    Parameters:
+    idx : int
+        Index of the landslide in gdf to rasterize
+    gdf : GeoDataFrame
+        GeoDataFrame containing landslide geometries
+    ee_geometry : ee.Geometry
+        Earth Engine geometry for the bounding region
+    shapely_geometry : shapely.geometry.Polygon or MultiPolygon
+        Shapely geometry for the bounding area
+    """
 
-    # Convert to GeoJSON-like dict (already in EPSG:4326)
-    geojson_dict = mapping(gdf_geom.iloc[0])
-
-    # Convert to Earth Engine Geometry
-    ee_geometry = ee.Geometry(geojson_dict)
-
-    # Create a raster mask where landslide area is 1 and non-landslide area is 0
-    mask_image = ee.Image().byte().paint(ee_geometry, 1).rename('landslide_mask')
-
-    # Export the mask image to Google Drive
+    # Extract single landslide geometry
+    landslide_geom = gdf.iloc[idx].geometry
+    
+    # Simplify geometry to reduce payload size (10m tolerance matches export resolution)
+    landslide_geom_simplified = landslide_geom.simplify(tolerance=0.0001, preserve_topology=True)
+    
+    print(f"Original geometry vertices: ~{len(mapping(landslide_geom)['coordinates'])} | "
+          f"Simplified: ~{len(mapping(landslide_geom_simplified)['coordinates'])}")
+    
+    # Convert simplified geometry to EE
+    landslide_ee_geom = ee.Geometry(mapping(landslide_geom_simplified))
+    
+    # Create a constant image with value 1 for landslide areas
+    # Paint the landslide geometry with value 1
+    landslide_image = ee.Image().byte().paint(
+        featureCollection=ee.FeatureCollection([ee.Feature(landslide_ee_geom)]),
+        color=1
+    )
+    
+    # Create base image with value 0 for non-landslide areas
+    # unmask(0) fills all unpainted pixels with 0
+    mask_image = landslide_image.unmask(0).rename('landslide_mask')
+    
+    # Clip to the region
+    mask_image = mask_image.clip(ee_geometry)
+    
+    # Get statistics to verify the mask has values
+    stats = mask_image.reduceRegion(
+        reducer=ee.Reducer.minMax(),
+        geometry=ee_geometry,
+        scale=10,
+        maxPixels=1e13
+    ).getInfo()
+    
+    print(f"Mask {idx} statistics: {stats}")
+    
+    # Export GeoTIFF
     task = ee.batch.Export.image.toDrive(
-        image=mask_image,
+        image=mask_image.toByte(),
         description=f'mask_{idx}',
         folder='TrainingData',
         fileNamePrefix=f'landslide_mask_{idx}',
         region=ee_geometry,
         scale=10,
         crs='EPSG:4326',
-        fileFormat='GeoTIFF'
+        fileFormat='GeoTIFF',
+        maxPixels=1e13
     )
+    
     task.start()
-    print(f"Exporting mask for landslide {idx}...")
-    return
+    print(f"Exporting landslide mask {idx} to Drive...")
 
 def create_training_data(gdf, bbox_gdf):
     for idx, row in bbox_gdf.iterrows():
+        if idx != 6:
+            continue
         event_date = row['event_date']
         bbox = row['geometry']
         start_date = event_date
@@ -234,7 +331,7 @@ def create_training_data(gdf, bbox_gdf):
             print("No Sentinel data found for event date:", event_date)
             continue
         else:
-            s1_image, s2_image, geometry = images
+            s1_image, s2_image, ee_geometry, shapely_geometry = images
             print("Retrieved Sentinel data for event date:", event_date)
             
             # Convert both images to Float32 to ensure compatibility
@@ -244,21 +341,24 @@ def create_training_data(gdf, bbox_gdf):
             # Stack the images
             stacked = s1_image.addBands(s2_image)
             
+            # Uncomment to export the stacked images
             task = ee.batch.Export.image.toDrive(
                 image=stacked,
                 description=f'image_{idx}',
                 folder='TrainingData',
                 fileNamePrefix=f's1s2_combined_{idx}',
-                region=geometry,
+                region=ee_geometry,
                 scale=10,
                 crs='EPSG:4326',
-                fileFormat='GeoTIFF'
+                fileFormat='GeoTIFF',
+                maxPixels=1e13
             )
             task.start()
-            create_mask(idx, gdf)
+            
+            create_mask(idx, gdf, ee_geometry, shapely_geometry)
     return
 
 if __name__ == "__main__":
     gdf, bbox_gdf = get_landslides()
     ee.Initialize(project = project_name)
-    s1_image, s2_image = create_training_data(gdf, bbox_gdf)
+    create_training_data(gdf, bbox_gdf)
