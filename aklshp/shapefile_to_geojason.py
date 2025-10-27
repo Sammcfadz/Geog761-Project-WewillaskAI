@@ -1,7 +1,7 @@
 import geopandas as gpd
 
 # Load shapefile
-gdf = gpd.read_file("aklshp/auckland.shp")
+gdf = gpd.read_file("aklshp/nasa_coolr_events_poly.shp")
 
 # Check current CRS
 print(f"Original CRS: {gdf.crs}")
@@ -17,4 +17,4 @@ print(f"Bounds: {gdf_wgs84.total_bounds}")
 # Should be roughly: [174.x, -37.x, 175.x, -36.x] for Auckland
 
 # Save to GeoJSON
-gdf_wgs84.to_file("aklshp/akl_shape.geojson", driver="GeoJSON")
+gdf_wgs84.to_file("aklshp/akl_landslides.geojson", driver="GeoJSON")

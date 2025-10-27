@@ -324,7 +324,7 @@ def print_data_summary(data):
 # Example usage
 if __name__ == "__main__":
     # Path to your HDF5 file
-    hdf5_path = r"Training Data\cyclone_gabriella_patches\image_2.h5"
+    hdf5_path = r"Training Data\cyclone_gabriella_patches\image_200.h5"
 
     # Load data
     print(f"Loading data from {hdf5_path}...")
