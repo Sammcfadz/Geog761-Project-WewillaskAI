@@ -9,3 +9,5 @@ https://uoa-my.sharepoint.com/:f:/g/personal/smcf586_uoa_auckland_ac_nz/EvahsMK5
 Run 'pip install -r requirements.txt' before running code
 
 GUI: To open web app, run "gui/run.py" and open http://127.0.0.1:8050/ on your browser.
+
+The outline file needs to be accessed by the onedrive as is too big to upload here directly 
