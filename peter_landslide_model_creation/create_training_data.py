@@ -320,7 +320,7 @@ def create_mask(idx, gdf, ee_geometry, shapely_geometry):
 
 def create_training_data(gdf, bbox_gdf):
     for idx, row in bbox_gdf.iterrows():
-        if idx != 6:
+        if idx != 1:
             continue
         event_date = row['event_date']
         bbox = row['geometry']
