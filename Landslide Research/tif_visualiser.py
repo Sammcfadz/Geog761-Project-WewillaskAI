@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Path to your .tif file
-file_path = r"Training Data\images\patch_75.tif"
+file_path = r"Training Data\images\patch_201.tif"
+
 
 # Open GeoTIFF
 with rasterio.open(file_path) as src:
@@ -16,13 +17,15 @@ with rasterio.open(file_path) as src:
     r = src.read(6)
 
 
-rgb = (np.dstack((r, g, b)) / 10000).clip(0, 1)
-
-
 # Normalize safely by percentiles (helps avoid outliers)
 def normalize_band(band):
     p2, p98 = np.percentile(band, (2, 98))
     return np.clip((band - p2) / (p98 - p2), 0, 1)
+
+rgb = (np.dstack((r, g, b)) / 10000).clip(0, 1)
+
+# Brighter looking image (artificially enhance brightness)
+# rgb = np.dstack((normalize_band(r), normalize_band(g), normalize_band(b)))
 
 # --- Plot all bands + RGB composite ---
 cols = 4
