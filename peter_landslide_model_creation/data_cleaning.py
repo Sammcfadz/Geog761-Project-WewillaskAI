@@ -164,13 +164,13 @@ def remove_problematic_images(images_dir, labels_dir=None, backup=True):
 
 if __name__ == "__main__":
     # Configuration
-    base_dir = "C:\\Users\\eagle\\Documents\\Geog761-Project-WewillaskAI\\Training Data"
-    images_dir = f"{base_dir}\\nasa_patches_split_128"
-    labels_dir = f"{base_dir}\\nasa_masks_split_128"
+    base_dir = "Training Data"
+    images_dir = f"{base_dir}/images"
+    labels_dir = f"{base_dir}/masks"
     
     # Remove problematic images (with backup by default)
     remove_problematic_images(
         images_dir=images_dir,
         labels_dir=labels_dir,
-        backup=True  # Set to False to permanently delete instead of backing up
+        backup=False  # Set to False to permanently delete instead of backing up
     )
