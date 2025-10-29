@@ -1,0 +1,7 @@
+,,precision,recall,f1-score,,
+Random Forests,0,0.9976,0.9843,0.9909,,
+Random Forests,1,0.2248,0.6548,0.3347,,
+XGBoost,0,1,0.9,0.95,,
+XGBoost,1,0.06,0.92,0.11,,
+Segmentation Model,0,0.99,1,1,,
+Segmentation Model,1,0,0,0,,
