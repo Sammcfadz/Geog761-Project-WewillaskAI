@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Path to your mask .tif file
-file_path = r"Training Data/nasa_masks_original/landslide_mask_1.tif"
+file_path = r"Training Data/masks/patch_62.tif"
 
 # --- Open GeoTIFF ---
 with rasterio.open(file_path) as src:

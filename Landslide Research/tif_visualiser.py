@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Path to your .tif file
-file_path = r"Training Data\nasa_patches_original\.tif"
+file_path = r"Training Data\images\patch_75.tif"
 
 # Open GeoTIFF
 with rasterio.open(file_path) as src:
@@ -11,9 +11,10 @@ with rasterio.open(file_path) as src:
     n_bands = src.count
     print(f"Loaded {n_bands} bands with shape {bands.shape}")
     # Read 3 bands (adjust band numbers as needed)
-    r = src.read(4)
+    b = src.read(4)
     g = src.read(5)
-    b = src.read(6)
+    r = src.read(6)
+
 
 rgb = (np.dstack((r, g, b)) / 10000).clip(0, 1)
 
@@ -38,7 +39,7 @@ for i in range(n_bands):
 
 # Plot RGB composite in last subplot
 axes[n_bands].imshow(rgb)
-axes[n_bands].set_title('RGB Composite (6-5-4)')
+axes[n_bands].set_title('RGB Composite (4-5-6)')
 axes[n_bands].axis('off')
 
 # Hide any extra subplots
