@@ -4,77 +4,170 @@ import numpy as np
 
 # Read the CSV file
 directory = "peter_landslide_model_creation"
-df = pd.read_csv(f"{directory}/model_metrics.csv")  # Adjust path as needed
+df = pd.read_csv(f"{directory}/model_metrics.csv")
 
-# Display the dataframe to verify
+print("DataFrame contents:")
 print(df)
+print("\nUnique model names:")
+print(df.iloc[:, 0].unique())
 
-# Set up the data for plotting
-models = df.iloc[:, 0].values  # First column (model names)
-classes = df.iloc[:, 1].values  # Second column (class labels)
-precision = df["precision"].values
-recall = df["recall"].values
-f1_score = df["f1-score"].values
+# ============= XGBoost Plot =============
+# Try different possible names for XGBoost
+xgb_names = ["xg boost", "xgboost", "XGBoost", "XG Boost"]
+xgb_data = None
 
-# Create labels for each bar
-labels = [f"{model}\nClass {cls}" for model, cls in zip(models, classes)]
+for name in xgb_names:
+    xgb_data = df[df.iloc[:, 0] == name].copy()
+    if len(xgb_data) > 0:
+        print(f"\nFound XGBoost data with name: '{name}'")
+        break
 
-# Set up bar positions
-x = np.arange(len(labels))
-width = 0.25  # Width of each bar
+if xgb_data is None or len(xgb_data) == 0:
+    print("Warning: XGBoost data not found in CSV")
+else:
+    # Extract data
+    xgb_classes = xgb_data.iloc[:, 1].values
+    xgb_precision = xgb_data["precision"].values
+    xgb_recall = xgb_data["recall"].values
+    xgb_f1 = xgb_data["f1-score"].values
 
-# Create the figure and axis
-fig, ax = plt.subplots(figsize=(14, 7))
+    # Set up plotting
+    metrics = ["Precision", "Recall", "F1-Score"]
+    x = np.arange(len(metrics))
+    width = 0.35
 
-# Create bars for each metric
-bars1 = ax.bar(
-    x - width, precision, width, label="Precision", alpha=0.8, color="#3498db"
-)
-bars2 = ax.bar(x, recall, width, label="Recall", alpha=0.8, color="#2ecc71")
-bars3 = ax.bar(x + width, f1_score, width, label="F1-Score", alpha=0.8, color="#e74c3c")
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-# Customize the plot
-ax.set_ylabel("Score", fontsize=12, fontweight="bold")
-ax.set_xlabel("Model and Class", fontsize=12, fontweight="bold")
-ax.set_title(
-    "Model Performance Comparison: Precision, Recall, and F1-Score",
-    fontsize=14,
-    fontweight="bold",
-    pad=20,
-)
-ax.set_xticks(x)
-ax.set_xticklabels(labels, fontsize=10)
-ax.legend(fontsize=11, loc="upper right")
-ax.set_ylim([0, 1.1])  # Set y-axis from 0 to 1.1
-ax.grid(axis="y", alpha=0.3, linestyle="--")
+    # Create bars for each class
+    bars1 = ax.bar(
+        x - width / 2,
+        [xgb_precision[0], xgb_recall[0], xgb_f1[0]],
+        width,
+        label="Class 0",
+        alpha=0.8,
+        color="#3498db",
+    )
+    bars2 = ax.bar(
+        x + width / 2,
+        [xgb_precision[1], xgb_recall[1], xgb_f1[1]],
+        width,
+        label="Class 1",
+        alpha=0.8,
+        color="#e74c3c",
+    )
+
+    # Customize plot
+    ax.set_ylabel("Score", fontsize=12)
+    ax.set_xlabel("Metrics", fontsize=12)
+    ax.set_title("XGBoost Performance by Class", fontsize=14, pad=20)
+    ax.set_xticks(x)
+    ax.set_xticklabels(metrics, fontsize=11)
+    ax.legend(fontsize=11)
+    ax.set_ylim([0, 1.1])
+    ax.grid(axis="y", alpha=0.3, linestyle="--")
+
+    # Add value labels
+    def add_labels(bars):
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height,
+                f"{height:.3f}",
+                ha="center",
+                va="bottom",
+                fontsize=10,
+            )
+
+    add_labels(bars1)
+    add_labels(bars2)
+
+    # Add reference line
+    ax.axhline(y=0.5, color="gray", linestyle=":", linewidth=1, alpha=0.5)
+
+    plt.tight_layout()
+    save_path = f"{directory}/xgboost_detailed_comparison.png"
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    print(f"XGBoost plot saved to: {save_path}")
+    plt.show()
 
 
-# Add value labels on top of bars
-def add_value_labels(bars):
-    for bar in bars:
-        height = bar.get_height()
-        ax.text(
-            bar.get_x() + bar.get_width() / 2.0,
-            height,
-            f"{height:.3f}",
-            ha="center",
-            va="bottom",
-            fontsize=8,
-        )
+# ============= Random Forest Plot =============
+# Try different possible names for Random Forest
+rf_names = ["Random Forests", "Random Forest", "random forest", "RF"]
+rf_data = None
 
+for name in rf_names:
+    rf_data = df[df.iloc[:, 0] == name].copy()
+    if len(rf_data) > 0:
+        print(f"\nFound Random Forest data with name: '{name}'")
+        break
 
-add_value_labels(bars1)
-add_value_labels(bars2)
-add_value_labels(bars3)
+if rf_data is None or len(rf_data) == 0:
+    print("Warning: Random Forest data not found in CSV")
+else:
+    # Extract data
+    rf_classes = rf_data.iloc[:, 1].values
+    rf_precision = rf_data["precision"].values
+    rf_recall = rf_data["recall"].values
+    rf_f1 = rf_data["f1-score"].values
 
-# Add a horizontal line at y=0.5 for reference
-ax.axhline(y=0.5, color="gray", linestyle=":", linewidth=1, alpha=0.5)
+    # Set up plotting
+    metrics = ["Precision", "Recall", "F1-Score"]
+    x = np.arange(len(metrics))
+    width = 0.35
 
-plt.tight_layout()
+    fig, ax = plt.subplots(figsize=(10, 6))
 
-# Save the figure
-save_path = f"{directory}/model_comparison_barchart.png"
-plt.savefig(save_path, dpi=300, bbox_inches="tight")
-print(f"\nChart saved to: {save_path}")
+    # Create bars for each class
+    bars1 = ax.bar(
+        x - width / 2,
+        [rf_precision[0], rf_recall[0], rf_f1[0]],
+        width,
+        label="Class 0",
+        alpha=0.8,
+        color="#2ecc71",
+    )
+    bars2 = ax.bar(
+        x + width / 2,
+        [rf_precision[1], rf_recall[1], rf_f1[1]],
+        width,
+        label="Class 1",
+        alpha=0.8,
+        color="#f39c12",
+    )
 
-plt.show()
+    # Customize plot
+    ax.set_ylabel("Score", fontsize=12)
+    ax.set_xlabel("Metrics", fontsize=12)
+    ax.set_title("Random Forest Performance by Class", fontsize=14, pad=20)
+    ax.set_xticks(x)
+    ax.set_xticklabels(metrics, fontsize=11)
+    ax.legend(fontsize=11)
+    ax.set_ylim([0, 1.1])
+    ax.grid(axis="y", alpha=0.3, linestyle="--")
+
+    # Add value labels
+    def add_labels(bars):
+        for bar in bars:
+            height = bar.get_height()
+            ax.text(
+                bar.get_x() + bar.get_width() / 2.0,
+                height,
+                f"{height:.3f}",
+                ha="center",
+                va="bottom",
+                fontsize=10,
+            )
+
+    add_labels(bars1)
+    add_labels(bars2)
+
+    # Add reference line
+    ax.axhline(y=0.5, color="gray", linestyle=":", linewidth=1, alpha=0.5)
+
+    plt.tight_layout()
+    save_path = f"{directory}/random_forest_detailed_comparison.png"
+    plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    print(f"Random Forest plot saved to: {save_path}")
+    plt.show()
